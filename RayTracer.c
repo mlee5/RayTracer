@@ -126,7 +126,6 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
  // Returns:
  // - The colour for this ray (using the col pointer)
  //
-
  struct colourRGB tmp_col;	// Accumulator for colour components
  double R,G,B;			// Colour for the object in R G and B
 
@@ -190,7 +189,7 @@ struct pointLS *currLight = light_list;
 	  double intensitySpecular = 100.0;
 
 	  findFirstHit(shadowRay, lambda, object_list, objHit, pHit, nHit, &a, &b);
-	  if (objHit != NULL){
+	  if(*lambda < DBL_MAX){
 		  
 		double ambient = ra * intensityAmbient;
 		double specular = rs * pow(max(0, dot(&ray->d , r)), shinyness) * intensitySpecular;
@@ -235,8 +234,11 @@ void findFirstHit(struct ray3D *ray, double *lambda, struct object3D *Os, struct
  // TO DO: Implement this function. See the notes for
  // reference of what to do in here
  /////////////////////////////////////////////////////////////
+ 
+ *obj = (struct object3D *)malloc(sizeof(struct object3D));
+
 struct object3D* curr_object = object_list;
- struct object3D** first_hit = (struct object3D **) malloc (sizeof (struct object3D *));
+// struct object3D** first_hit = (struct object3D **) malloc (sizeof (struct object3D *));
  double *closest =  (double *) malloc (sizeof (double));
  struct point3D *closest_p, *closest_n;
  *closest = DBL_MAX;
@@ -246,8 +248,9 @@ struct object3D* curr_object = object_list;
  	curr_object->intersect(curr_object, ray, lambda, p, n, a, b);
  	if (*lambda > 0 && *lambda < *closest)
 	{	
+
     //first_hit = &curr_object;
-	obj = &curr_object;
+	*obj = curr_object;
 	*closest = *lambda;
     closest_n = n;
     closest_p = p;
@@ -262,7 +265,7 @@ struct object3D* curr_object = object_list;
  /////////////////////////////////////////////////////////////
  // TO DO: Implement this function. See the notes for
  // reference of what to do in here
- //////////////////////////////
+ /////////////////////////////////////////////////////////////
 
 }
 
@@ -297,9 +300,9 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
 
  // findFirstHit to get the object it hits and rtShade 
  findFirstHit(ray, &lambda, Os, &obj, &p, &n, &a, &b);
- if(obj != NULL)
+ if(lambda < DBL_MAX){
 	 rtShade(obj, &p, &n, ray, depth, a, b, col);
-	 
+ }
  ///////////////////////////////////////////////////////
  // TO DO: Complete this function. Refer to the notes
  // if you are unsure what to do here.
