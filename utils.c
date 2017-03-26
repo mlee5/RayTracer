@@ -196,7 +196,7 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
  	struct point3D l;
 	struct point3D o;
 	double d, tempa, tempb, tempc;
-	struct ray3D *newRay;
+	struct ray3D *newRay = (struct ray3D *) malloc(sizeof(struct ray3D));
 	
 
 	rayTransform(ray, newRay, plane);
@@ -229,11 +229,10 @@ void sphereIntersect(struct object3D *sphere, struct ray3D *ray, double *lambda,
 {
  // Computes and returns the value of 'lambda' at the intersection
  // between the specified ray and the specified canonical sphere.
-
  	struct point3D l;
 	struct point3D o;
 	double d, tempa, tempb, tempc;
-	struct ray3D *newRay;
+	struct ray3D *newRay = (struct ray3D *) malloc(sizeof(struct ray3D));
 
 	rayTransform(ray, newRay, sphere);
 

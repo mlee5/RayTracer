@@ -153,8 +153,67 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
  // TO DO: Implement this function. Refer to the notes for
  // details about the shading model.
  //////////////////////////////////////////////////////////////
+// for light in scene create ray from intersection to light 
 
+
+R = obj->col.R;
+G = obj->col.G;
+B = obj->col.B;
+ 
+double shinyness = obj->shinyness;
+double ra = obj->alb.ra;
+double rd = obj->alb.rd;
+double rs = obj->alb.rs;
+double rg = obj->alb.rg;
+ 
+double *lambda;
+struct object3D **objHit;
+struct point3D *pHit;
+struct point3D *nHit;
+
+//point3D r = ray->d - 2 * dot(&ray->d , n)  * n;
+point3D *r = newPoint(dot(&ray->d , n) * n->px, dot(&ray->d , n) * n->py, dot(&ray->d , n) * n->pz);
+subVectors(&ray->d, r);
+normalize(r);
+struct ray3D *reflectedRay = newRay(p, r);
+
+struct pointLS *currLight = light_list;
+  while (currLight != NULL)
+  {
+	  struct point3D *direction = newPoint(currLight->p0.px, currLight->p0.py, currLight->p0.pz);
+	  subVectors(p, direction);
+	  double intensityAmbient = 100/length(direction);
+	  normalize(direction);
+      struct ray3D *shadowRay = newRay(p, direction);
+	
+	  double intensityDiffuse = 100.0;
+	  double intensitySpecular = 100.0;
+
+	  findFirstHit(shadowRay, lambda, object_list, objHit, pHit, nHit, &a, &b);
+	  if (objHit != NULL){
+		  
+		double ambient = ra * intensityAmbient;
+		double specular = rs * pow(max(0, dot(&ray->d , r)), shinyness) * intensitySpecular;
+		double diffuse = rd * max(0, dot(n, &shadowRay->d)) * intensityDiffuse;
+		  
+		tmp_col.R +=  (ambient + diffuse + specular) * currLight->col.R;
+		tmp_col.G +=  (ambient + diffuse + specular) * currLight->col.G;
+		tmp_col.B +=  (ambient + diffuse + specular) * currLight->col.B;
+	  }
+	  
+      currLight = currLight->next;
+  }
+ 
+ 	  if (depth > 0){
+		  // Color passed in here is not correct. just there to compile for now. 
+		  rayTrace(reflectedRay, --depth, col, obj);
+	  }
+ 
+     col->R = tmp_col.R * rg;
+	 col->G = tmp_col.G * rg;
+	 col->B = tmp_col.B * rg;
  // Be sure to update 'col' with the final colour computed here!
+ 
  return;
 
 }
@@ -171,34 +230,39 @@ void findFirstHit(struct ray3D *ray, double *lambda, struct object3D *Os, struct
  // Os is the 'source' object for the ray we are processing, can be NULL, and is used to ensure we don't 
  // return a self-intersection due to numerical errors for recursive raytrace calls.
  //
- struct object3D* curr_object = object_list;
- struct object3D* first_hit = NULL;
- double *closest;
+
+ /////////////////////////////////////////////////////////////
+ // TO DO: Implement this function. See the notes for
+ // reference of what to do in here
+ /////////////////////////////////////////////////////////////
+struct object3D* curr_object = object_list;
+ struct object3D** first_hit = (struct object3D **) malloc (sizeof (struct object3D *));
+ double *closest =  (double *) malloc (sizeof (double));
  struct point3D *closest_p, *closest_n;
- 
  *closest = DBL_MAX;
  while (curr_object != NULL)
  {
+	 
  	curr_object->intersect(curr_object, ray, lambda, p, n, a, b);
  	if (*lambda > 0 && *lambda < *closest)
 	{	
-    first_hit = curr_object;
-		*closest = *lambda;
+    //first_hit = &curr_object;
+	obj = &curr_object;
+	*closest = *lambda;
     closest_n = n;
     closest_p = p;
 
 	}
 	curr_object = curr_object->next;
  }
-
  *lambda = *closest;
  p = closest_p;
  n = closest_n;
- first_hit;
+
  /////////////////////////////////////////////////////////////
  // TO DO: Implement this function. See the notes for
  // reference of what to do in here
- /////////////////////////////////////////////////////////////
+ //////////////////////////////
 
 }
 
@@ -231,6 +295,11 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
   return;
  }
 
+ // findFirstHit to get the object it hits and rtShade 
+ findFirstHit(ray, &lambda, Os, &obj, &p, &n, &a, &b);
+ if(obj != NULL)
+	 rtShade(obj, &p, &n, ray, depth, a, b, col);
+	 
  ///////////////////////////////////////////////////////
  // TO DO: Complete this function. Refer to the notes
  // if you are unsure what to do here.
@@ -367,6 +436,7 @@ int main(int argc, char *argv[])
  dv=-cam->wsize/(sx-1);		// here we use wl, wt, and wsize. du=dv since the image is
 				// and dv is negative since y increases downward in pixel
 				// coordinates and upward in camera coordinates.
+
  fprintf(stderr,"View parameters:\n");
  fprintf(stderr,"Left=%f, Top=%f, Width=%f, f=%f\n",cam->wl,cam->wt,cam->wsize,cam->f);
  fprintf(stderr,"Camera to world conversion matrix (make sure it makes sense!):\n");
@@ -381,11 +451,20 @@ int main(int argc, char *argv[])
   fprintf(stderr,"%d/%d, ",j,sx);
   for (i=0;i<sx;i++)
   {
+	  pc = *newPoint(0, 0, 0);
+	  //since the origin at 0, can easily find direction without subtracting origin from image point. 
+	  d = *newPoint(-sx/2 + i + 0/5, -sx/2 + j + 0/5, -1);
+	  normalize(&d);
+	  matVecMult(cam->C2W, &d);
+	  matVecMult(cam->C2W, &pc);
+	 
     ///////////////////////////////////////////////////////////////////
     // TO DO - complete the code that should be in this loop to do the
     //         raytracing!
     ///////////////////////////////////////////////////////////////////
-
+    ray = newRay(&pc, &d);
+    rayTrace(ray, MAX_DEPTH, &col, NULL);
+   
   } // end for i
  } // end for j
 
