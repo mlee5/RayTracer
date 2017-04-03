@@ -94,7 +94,7 @@ inline void transpose(double A[4][4])
   B[1][2] = A[2][1];
   B[1][3] = A[3][1];
   B[2][0] = A[0][2];
-  B[2][1] = A[2][1];
+  B[2][1] = A[1][2];
   B[2][3] = A[3][2];
   B[3][0] = A[0][3];
   B[3][2] = A[2][3];
@@ -133,9 +133,10 @@ inline void addVectors(struct point3D *a, struct point3D *b)
  // Performs the vector addition b=a+b. Note the result
  // is left in b. This function assumes the w components
  // of both vectFrayPopx;
+ 
+ b->px=b->px+a->px;
  b->py=b->py+a->py;
- b->pz=b->pz+a->pz;
- b->pw=1;               // Mind the homogeneous coordinate!
+ b->pz=b->pz+a->pz;          // Mind the homogeneous coordinate!
 }
 
 inline void subVectors(struct point3D *a, struct point3D *b)
@@ -145,8 +146,7 @@ inline void subVectors(struct point3D *a, struct point3D *b)
  // of both vectors are set to 1.
  b->px=b->px-a->px;
  b->py=b->py-a->py;
- b->pz=b->pz-a->pz;
- b->pw=1;               // Mind the homogeneous coordinate!
+ b->pz=b->pz-a->pz;   // Mind the homogeneous coordinate!
 }
 
 inline double length(struct point3D *a)
@@ -195,11 +195,15 @@ void normalTransform(struct point3D *n_orig, struct point3D *n_transformed, stru
 // You'll need to add code for these functions in utils.c
 struct object3D *newPlane(double ra, double rd, double rs, double rg, double r, double g, double b, double alpha, double R_index, double shiny);
 struct object3D *newSphere(double ra, double rd, double rs, double rg, double r, double g, double b, double alpha, double R_index, double shiny);
+struct object3D *newCylinder(double ra, double rd, double rs, double rg, double r, double g, double b, double alpha, double R_index, double shiny);
+struct object3D *newPacman(double ra, double rd, double rs, double rg, double r, double g, double b, double alpha, double R_index, double shiny);
 
 // Functions to compute intersections for objects.
 // You'll need to add code for these in utils.c
 void planeIntersect(struct object3D *plane, struct ray3D *r, double *lambda, struct point3D *p, struct point3D *n, double *a, double *b);
 void sphereIntersect(struct object3D *sphere, struct ray3D *r, double *lambda, struct point3D *p, struct point3D *n, double *a, double *b);
+void cylinderIntersect(struct object3D *cylinder, struct ray3D *r, double *lambda, struct point3D *p, struct point3D *n, double *a, double *b);
+void pacmanIntersect(struct object3D *pacman, struct ray3D *r, double *lambda, struct point3D *p, struct point3D *n, double *a, double *b);
 
 // Functions to texture-map objects
 // You will need to add code for these if you implement texture mapping.

@@ -8,6 +8,9 @@
 */
 
 #include "utils.h"
+#include "float.h"
+#include "math.h"
+
 
 // A useful 4x4 identity matrix which can be used at any point to
 // initialize or reset object transformations
@@ -62,7 +65,7 @@ struct pointLS *newPLS(struct point3D *p0, double r, double g, double b)
 /////////////////////////////////////////////
 // Ray and normal transforms
 /////////////////////////////////////////////
-inline void rayTransform(struct ray3D *ray_orig, struct ray3D *ray_transformed, struct object3D *obj)
+void rayTransform(struct ray3D *ray_orig, struct ray3D *ray_transformed, struct object3D *obj)
 {
  // Transforms a ray using the inverse transform for the specified object. This is so that we can
  // use the intersection test for the canonical object. Note that this has to be done carefully!
@@ -74,13 +77,14 @@ inline void rayTransform(struct ray3D *ray_orig, struct ray3D *ray_transformed, 
 	l.pw = 0;
 
 
-	matVecMult(obj->T, &o);
-	matVecMult(obj->T, &l);
+	matVecMult(obj->Tinv, &o);
+	matVecMult(obj->Tinv, &l);
+	
+  	memcpy(&ray_transformed->p0,&o,sizeof(point3D));
+  	memcpy(&ray_transformed->d,&l,sizeof(point3D));
+	}
 
-	ray_transformed = newRay(&o, &l);
-}
-
-inline void normalTransform(struct point3D *n_orig, struct point3D *n_transformed, struct object3D *obj)
+void normalTransform(struct point3D *n_orig, struct point3D *n_transformed, struct object3D *obj)
 {
  // Computes the normal at an affinely transformed point given the original normal and the
  // object's inverse transformation. From the notes:
@@ -90,9 +94,11 @@ inline void normalTransform(struct point3D *n_orig, struct point3D *n_transforme
  // TO DO: Complete this function
  ///////////////////////////////////////////
 	double temp[4][4];
-	n_transformed = newPoint(n_orig->px, n_orig->py, n_orig->pz);
+	n_transformed->px = n_orig->px;
+	n_transformed->py = n_orig->py;
+	n_transformed->pz = n_orig->pz;
+	n_transformed->pw = 0;
 
-	invert(*(obj->T), *(obj->Tinv));
 	memcpy(temp,&obj->Tinv[0][0],16*sizeof(double));
 	transpose(temp);
 	matVecMult(temp, n_transformed);
@@ -178,6 +184,81 @@ struct object3D *newSphere(double ra, double rd, double rs, double rg, double r,
  return(sphere);
 }
 
+struct object3D *newCylinder(double ra, double rd, double rs, double rg, double r, double g, double b, double alpha, double r_index, double shiny)
+{
+ // Intialize a new cylinder with the specified parameters:
+ // ra, rd, rs, rg - Albedos for the components of the Phong model
+ // r, g, b, - Colour for this plane
+ // alpha - Transparency, must be set to 1 unless you are doing refraction
+ // r_index - Refraction index if you are doing refraction.
+ // shiny -Exponent for the specular component of the Phong model
+ //
+ // This is assumed to represent a unit cylinder centered at the origin, with length 2 along z axis;
+ //
+
+ struct object3D *cylinder=(struct object3D *)calloc(1,sizeof(struct object3D));
+
+ if (!cylinder) fprintf(stderr,"Unable to allocate new cylinder, out of memory!\n");
+ else
+ {
+  cylinder->alb.ra=ra;
+  cylinder->alb.rd=rd;
+  cylinder->alb.rs=rs;
+  cylinder->alb.rg=rg;
+  cylinder->col.R=r;
+  cylinder->col.G=g;
+  cylinder->col.B=b;
+  cylinder->alpha=alpha;
+  cylinder->r_index=r_index;
+  cylinder->shinyness=shiny;
+  cylinder->intersect=&cylinderIntersect;
+  cylinder->texImg=NULL;
+  memcpy(&cylinder->T[0][0],&eye4x4[0][0],16*sizeof(double));
+  memcpy(&cylinder->Tinv[0][0],&eye4x4[0][0],16*sizeof(double));
+  cylinder->textureMap=&texMap;
+  cylinder->frontAndBack=0;
+  cylinder->isLightSource=0;
+ }
+ return(cylinder);
+}
+struct object3D *newPacman(double ra, double rd, double rs, double rg, double r, double g, double b, double alpha, double r_index, double shiny)
+{
+ // Intialize a new pacman with the specified parameters:
+ // ra, rd, rs, rg - Albedos for the components of the Phong model
+ // r, g, b, - Colour for this plane
+ // alpha - Transparency, must be set to 1 unless you are doing refraction
+ // r_index - Refraction index if you are doing refraction.
+ // shiny -Exponent for the specular component of the Phong model
+ //
+ // This is assumed to represent a unit pacman centered at the origin, with length 1;
+ //
+
+ struct object3D *pacman=(struct object3D *)calloc(1,sizeof(struct object3D));
+
+ if (!pacman) fprintf(stderr,"Unable to allocate new pacman, out of memory!\n");
+ else
+ {
+  pacman->alb.ra=ra;
+  pacman->alb.rd=rd;
+  pacman->alb.rs=rs;
+  pacman->alb.rg=rg;
+  pacman->col.R=r;
+  pacman->col.G=g;
+  pacman->col.B=b;
+  pacman->alpha=alpha;
+  pacman->r_index=r_index;
+  pacman->shinyness=shiny;
+  pacman->intersect=&pacmanIntersect;
+  pacman->texImg=NULL;
+  memcpy(&pacman->T[0][0],&eye4x4[0][0],16*sizeof(double));
+  memcpy(&pacman->Tinv[0][0],&eye4x4[0][0],16*sizeof(double));
+  pacman->textureMap=&texMap;
+  pacman->frontAndBack=0;
+  pacman->isLightSource=0;
+ }
+ return(pacman);
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // TO DO:
 //	Complete the functions that compute intersections for the canonical plane
@@ -192,35 +273,70 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
  /////////////////////////////////
  // TO DO: Complete this function.
  /////////////////////////////////
- 	struct point3D *p1, *n1;
- 	struct point3D l;
-	struct point3D o;
+ 	struct point3D *p1, *n1, *l, *o;
 	double d, tempa, tempb, tempc;
-	struct ray3D *newRay = (struct ray3D *) malloc(sizeof(struct ray3D));
-	
+	struct ray3D *ray_transformed;
+	ray_transformed = newRay(&(ray->p0), &(ray->d));
+ 	rayTransform(ray, ray_transformed, plane);
+	o = &(ray_transformed->p0);
+	l = &(ray_transformed->d);
+	l->pw = 0;
 
-	rayTransform(ray, newRay, plane);
-	o = newRay->p0;
-	l = newRay->d;
-	l.pw = 0;
+	p1 = newPoint(0, 0, 0);
+	n1 = newPoint(0, 0, 0);
 
-	p1 = newPoint(1.0, 1.0, 0);
-	n1 = newPoint(0, 0, 1);
+	p1->px = 0;
+	p1->py = 0;
+	p1->pz = 0;
+	p1->pw = 1; 
+
+	n1->px = 0;
+	n1->py = 0;
+	n1->pz = -1; 
 	n1->pw = 0;
-	subVectors(&o, p1);
-	tempa = dot(&o, n1);
-	tempb = dot(&l, n1);
+	
+	subVectors(o, p1);
+	tempa = dot(p1, n1);
+	tempb = dot(l, n1);
 
-	if (tempb == 0)
+
+	if (l->pz == 0)
 	{
-		*lambda = -1;
+		*(lambda) = DBL_MAX;
 	}
 	else
 	{
-		*lambda = tempa/tempb;
-		rayPosition(ray, *lambda, p);
-		normalTransform(n1, n,plane);
+		*lambda = -o->pz/l->pz;
+		if (*lambda > 0)
+		{
+
+			rayPosition(ray_transformed, *lambda, p1);
+			if (p1->px >= -1 && p1->px <= 1 && p1->py >= -1 && p1->py <= 1 )
+			{
+				matVecMult(plane->T, p1);
+
+				memcpy(p, p1, sizeof(point3D));
+				normalTransform(n1, n, plane);
+				normalize(n);
+			}
+			else
+			{
+				*lambda = DBL_MAX;
+			}
+
+			//fprintf(stderr,"%.2f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f\n",(*lambda), l->px, l->py, l->pz, n->px, n->py, n->pz, tempa, tempb);
+			//fprintf(stderr,"%.4f %.4f %.4f %.4f %.4f %.4f a\n",  p->px, p->py, p->pz, n->px, n->py, n->pz);
+		
+		}
+		else
+		{
+			*lambda = DBL_MAX;
+		}
+
 	}
+	free(p1);
+	free(n1);
+	free(ray_transformed);
 	 
  	
 }
@@ -229,39 +345,194 @@ void sphereIntersect(struct object3D *sphere, struct ray3D *ray, double *lambda,
 {
  // Computes and returns the value of 'lambda' at the intersection
  // between the specified ray and the specified canonical sphere.
- 	struct point3D l;
-	struct point3D o;
+
+ 	struct point3D *l, *o, *p1;
 	double d, tempa, tempb, tempc;
-	struct ray3D *newRay = (struct ray3D *) malloc(sizeof(struct ray3D));
+	struct ray3D *ray_transformed;
+	ray_transformed = newRay(&(ray->p0), &(ray->d));
 
-	rayTransform(ray, newRay, sphere);
+	rayTransform(ray, ray_transformed, sphere);
+	//fprintf(stderr,"%.4f %.4f %.4f %.4f %.4f %.4f\n", ray_transformed->p0.px, ray_transformed->p0.py, ray_transformed->p0.pz, ray_transformed->d.px, ray_transformed->d.py, ray_transformed->d.pz);
+		
 
-	o = newRay->p0;
-	l = newRay->d;
-	l.pw = 0;
+	p1 = newPoint(0, 0, 0);
 
-	tempa = dot(&l, &o);
-	tempb = length(&l);
-	tempc = length(&o);
+	o = &(ray_transformed->p0);
+	l = &(ray_transformed->d);
+	l->pw = 0;
+
+	tempa = dot(l, o);
+	tempb = length(l);
+	tempc = length(o);
 	d = tempa * tempa - tempb*tempb * (tempc*tempc - 1);
 	if (d < 0)
 	{
-		*lambda = -1;
+		*lambda = DBL_MAX;
 	}
 	else if ( d == 0)
 	{
-		*lambda = -tempa;
-		rayPosition(newRay, *lambda, &o);
-		rayPosition(ray, *lambda, p);
-		normalTransform(&o,n,sphere);
+
+		*lambda = tempa;
+		if (*lambda > 0)
+		{
+			rayPosition(ray_transformed, *lambda, p1);
+			matVecMult(sphere->T, p1);
+
+			memcpy(p, p1, sizeof(point3D));
+			normalTransform(p1, n, sphere);
+			normalize(n);
+		}
+		else
+		{
+			*lambda = DBL_MAX;
+		}
 	}
 	else
-	{
-		*lambda = -tempa-d;
-		rayPosition(newRay, *lambda, &o);
-		rayPosition(ray, *lambda, p);
-		normalTransform(&o,n,sphere);
+	{		
+		*lambda = (-tempa-pow(d, 0.5))/(tempb*tempb);
+
+		//fprintf(stderr,"%.2f %.4f %.4f %.4f \n", *lambda, tempa, tempb, tempc);
+		
+		//fprintf(stderr,"%.2f %.4f %.4f %.4f %.4f %.4f %.4f\n",(*lambda), o->px, o->py, o->pz, l->px, l->py, l->pz);
+		
+		if (*lambda > 0) 
+		{
+		
+		rayPosition(ray_transformed, *lambda, p1);
+
+		memcpy(p, p1, sizeof(point3D));
+		matVecMult(sphere->T, p);
+		normalTransform(p1, n, sphere);
+		normalize(n);
+		//printf("%.3f %.3f %.3f %.3f %.3f %.3f\n", n->px, n->py, n->pz, p1->px, p1->py, p1->pz);
+
+		}
+		else
+		{
+			*lambda = DBL_MAX;
+		}
 	}
+
+	free(p1);
+	free(ray_transformed);
+}
+
+void cylinderIntersect(struct object3D *cylinder, struct ray3D *ray, double *lambda, struct point3D *p, struct point3D *n, double *a, double *b)
+{
+ // Computes and returns the value of 'lambda' at the intersection
+ // between the specified ray and the specified canonical sphere.
+
+ 	struct point3D *l, *o, *p1;
+	double d, tempa, tempb, tempc;
+	struct ray3D *ray_transformed;
+	ray_transformed = newRay(&(ray->p0), &(ray->d));
+
+	rayTransform(ray, ray_transformed, cylinder);
+	//fprintf(stderr,"%.4f %.4f %.4f %.4f %.4f %.4f\n", ray_transformed->p0.px, ray_transformed->p0.py, ray_transformed->p0.pz, ray_transformed->d.px, ray_transformed->d.py, ray_transformed->d.pz);
+		
+
+	p1 = newPoint(0, 0, 0);
+
+	
+	o = &(ray_transformed->p0);
+	l = &(ray_transformed->d);
+	l->pw = 0;
+	l->pz = 0;
+	o->pz = 0;
+
+	tempa = dot(l, o);
+	tempb = length(l);
+	tempc = length(o);
+	d = tempa * tempa - tempb*tempb * (tempc*tempc - 1);
+	if (d < 0)
+	{
+		*lambda = DBL_MAX;
+	}
+	else if ( d == 0)
+	{
+
+		*lambda = tempa;
+		if (*lambda > 0)
+		{
+			rayPosition(ray_transformed, *lambda, p1);
+			matVecMult(cylinder->T, p1);
+
+			memcpy(p, p1, sizeof(point3D));
+			normalTransform(p1, n, cylinder);
+			normalize(n);
+		}
+		else
+		{
+			*lambda = DBL_MAX;
+		}
+	}
+	else
+	{		
+		*lambda = (-tempa-pow(d, 0.5))/(tempb*tempb);
+
+		//fprintf(stderr,"%.2f %.4f %.4f %.4f \n", *lambda, tempa, tempb, tempc);
+		
+		//fprintf(stderr,"%.2f %.4f %.4f %.4f %.4f %.4f %.4f\n",(*lambda), o->px, o->py, o->pz, l->px, l->py, l->pz);
+		
+		if (*lambda > 0) 
+		{
+		
+		rayPosition(ray_transformed, *lambda, p1);
+
+			if (p1->pz < 1 && p1->pz > -1)
+			{
+
+			memcpy(p, p1, sizeof(point3D));
+			matVecMult(cylinder->T, p);
+			normalTransform(p1, n, cylinder);
+			normalize(n);
+			//printf("%.3f %.3f %.3f %.3f %.3f %.3f\n", n->px, n->py, n->pz, p1->px, p1->py, p1->pz);
+
+			}
+			else
+			{
+				//check intersection with top and bottom plane
+
+			}
+		}
+		else
+		{
+			*lambda = DBL_MAX;
+		
+		}
+	}
+
+	free(p1);
+	free(ray_transformed);
+}
+
+void pacmanIntersect(struct object3D *pacman, struct ray3D *ray, double *lambda, struct point3D *p, struct point3D *n, double *a, double *b)
+{
+ // Computes and returns the value of 'lambda' at the intersection
+ // between the specified ray and the specified canonical sphere.
+
+ 	struct point3D *l, *o, *p1;
+	double d, tempa, tempb, tempc;
+	struct ray3D *ray_transformed;
+	ray_transformed = newRay(&(ray->p0), &(ray->d));
+
+	rayTransform(ray, ray_transformed, pacman);
+	//fprintf(stderr,"%.4f %.4f %.4f %.4f %.4f %.4f\n", ray_transformed->p0.px, ray_transformed->p0.py, ray_transformed->p0.pz, ray_transformed->d.px, ray_transformed->d.py, ray_transformed->d.pz);
+		
+
+	p1 = newPoint(0, 0, 0);
+
+	o = &(ray_transformed->p0);
+	l = &(ray_transformed->d);
+	l->pw = 0;
+
+	//****/////
+	tempa = dot(l, o);
+	tempb = length(l);
+	tempc = length(o);
+
+	free(p1);
+	free(ray_transformed);
 }
 
 void loadTexture(struct object3D *o, const char *filename)
@@ -302,10 +573,20 @@ void texMap(struct image *img, double a, double b, double *R, double *G, double 
  // interpolation to obtain the texture colour.
  //////////////////////////////////////////////////
 
- *(R)=0;	// Returns black - delete this and
- *(G)=0;	// replace with your code to compute
- *(B)=0;	// texture colour at (a,b)
- return;
+ unsigned char *rgbIm =  (unsigned char *)img->rgbdata;
+ int sx = img->sx;
+ int sy = img->sy;
+ 
+ int i = floor(a*(img->sx -1));
+ int j = floor(b*(img->sy -1));
+
+ double rtemp =  (1-a)*(1-b)* ((double) *(rgbIm+3*(sx*j+i)) ) + (a)*(1-b)* ((double) *(rgbIm+3*(sx*j+i+1)) ) + (1-a)*(b)* ((double) *(rgbIm+3*(sx*(j+1)+i)) ) + a*b*((double) *(rgbIm+3*(sx*(j+1)+i +1)) );
+ double gtemp =  (1-a)*(1-b)* ((double) *(rgbIm+ (3*(sx*j+i) +1)) ) + (a)*(1-b)* ((double) *(rgbIm+ (3*(sx*j+i+1)+1)) ) + (1-a)*(b)* ((double) *(rgbIm+ (3*(sx*(j+1)+i)+1)) ) + a*b*((double) *(rgbIm+ (3*(sx*(j+1)+i +1)+1)) );
+ double btemp =  (1-a)*(1-b)* ((double) *(rgbIm+ (3*(sx*j+i) +2)) ) + (a)*(1-b)* ((double) *(rgbIm+ (3*(sx*j+i+1)+2)) ) + (1-a)*(b)* ((double) *(rgbIm+ (3*(sx*(j+1)+i)+2)) ) + a*b*((double) *(rgbIm+ (3*(sx*(j+1)+i +1)+2)) );
+
+ *(R)= rtemp;	// Returns black - delete this and
+ *(G)= gtemp;	// replace with your code to compute
+ *(B)= btemp;	// texture colour at (a,b)
 }
 
 void insertObject(struct object3D *o, struct object3D **list)
@@ -358,6 +639,76 @@ void addAreaLight(float sx, float sy, float nx, float ny, float nz,\
    make it into a proper solid box with backing and sides of non-light-emitting
    material
  */
+
+	struct point3D b1, b2, n, p;
+	struct point3D *u, *v;
+ 	struct pointLS *l;
+ 	struct object3D *o;
+ 	double phi, theta;
+	n.px = nx;
+	n.py = ny;
+	n.pz = nz;
+	b1.px = 1;
+	b1.py = 0;
+	b1.pz = 0;
+	b2.px = 0;
+	b2.py = 1;
+	b2.pz = 0;
+	normalize(&n);
+	if (n.px == b1.px && n.py == b1.py && n.pz == b1.pz)
+	{
+		u = newPoint(0, 0, 1);
+		v = newPoint(0, 1, 0);
+
+	}
+	else if (n.px == b2.px && n.py == b2.py && n.pz == b2.pz)
+	{
+		u = newPoint(0, 0, 1);
+		v = newPoint(0, 1, 0);
+	}
+	else
+	{
+		v = cross(&b2, &n);
+		u = cross(&n, &b1);
+		normalize(u);
+		normalize(v);
+
+	}
+
+	for (int i = 0; i < lx; i++)
+	{
+		for (int j = 0; j < ly; j++)
+		{
+			p.px = u->px*(i-lx/2)*sx/lx  + v->px*(j-ly/2)*sy/ly + tx;
+			p.py = u->py*(i-lx/2)*sx/lx  + v->py*(j-ly/2)*sy/ly + ty;
+			p.pz = u->pz*(i-lx/2)*sx/lx  + v->pz*(j-ly/2)*sy/ly + tz;
+ 			fprintf(stderr,"%.4f %.4f %.4f f\n",  p.px, p.py, p.pz);
+
+ 			l=newPLS(&p,0.85/(lx*ly),0.85/(lx*ly),0.85/(lx*ly));
+
+ 			insertPLS(l,l_list);
+		}
+	} 
+	o=newPlane(.05,.75,.05,.05,r,g,b,1,1,0);  
+    Scale(o,sx,sy,1);     
+    theta = acos(-nz);  
+    double phi1 = acos(ny/sin(theta));
+    double phi2 = asin(-nx/sin(theta));
+    if (phi2 >= 0) 
+    {
+    	phi = phi1;
+    }
+    else  
+    {
+    	phi = 2*PI-phi1;
+    }
+    RotateX(o,theta);
+    RotateZ(o,phi);
+    Translate(o,tx,ty,tz);
+    invert(&o->T[0][0],&o->Tinv[0][0]); 
+ 	//insertObject(o,o_list);
+
+
 
   /////////////////////////////////////////////////////
   // TO DO: (Assignment 4!)
@@ -585,7 +936,7 @@ struct view *setupView(struct point3D *e, struct point3D *g, struct point3D *up,
  c->w.px=-g->px;
  c->w.py=-g->py;
  c->w.pz=-g->pz;
- c->w.pw=1;
+ c->w.pw=0;
  normalize(&c->w);
 
  // Set up the horizontal direction, which must be perpenticular to w and up
@@ -594,7 +945,7 @@ struct view *setupView(struct point3D *e, struct point3D *g, struct point3D *up,
  c->u.px=u->px;
  c->u.py=u->py;
  c->u.pz=u->pz;
- c->u.pw=1;
+ c->u.pw=0;
 
  // Set up the remaining direction, v=(u x w)  - Mind the signs
  v=cross(&c->u, &c->w);
@@ -602,7 +953,7 @@ struct view *setupView(struct point3D *e, struct point3D *g, struct point3D *up,
  c->v.px=v->px;
  c->v.py=v->py;
  c->v.pz=v->pz;
- c->v.pw=1;
+ c->v.pw=0;
 
  // Copy focal length and window size parameters
  c->f=f;
