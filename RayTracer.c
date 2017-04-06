@@ -61,6 +61,8 @@ void buildScene(void)
  // Insert a couple of objects. A plane and two spheres
  // with some transformations.
 
+  const char filename[] = "bricks.ppm";
+ 
  // Let's add a plane
  // Note the parameters: ra, rd, rs, rg, R, G, B, alpha, r_index, and shinyness)
  o=newPlane(.05,.75,.05,.05,.55,.8,.75,1,1,2);  // Note the plane is highly-reflective (rs=rg=.75) so we
@@ -75,6 +77,7 @@ void buildScene(void)
  invert(&o->T[0][0],&o->Tinv[0][0]);    // Very important! compute
            //and store the inverse
            // transform for this object!
+ loadTexture(o, filename);
  insertObject(o,&object_list);      // Insert into object list
 
  // Let's add a couple spheres
@@ -84,11 +87,7 @@ void buildScene(void)
  RotateY(o,PI/2);
  Translate(o,-1.45,1.1,3.5);
  invert(&o->T[0][0],&o->Tinv[0][0]);
- 
- fprintf(stderr,"build 1\n");
- const char filename[] = "red.ppm";
- fprintf(stderr,"build2\n");
- loadTexture(o, filename);
+ //loadTexture(o, filename);
  insertObject(o,&object_list);
 
  
@@ -161,7 +160,7 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
   // Get object colour from the texture given the texture coordinates (a,b), and the texturing function
   // for the object. Note that we will use textures also for Photon Mapping.
   obj->textureMap(obj->texImg,a,b,&R,&G,&B);
-  //   fprintf(stderr,"shade text 2 %f %f %f\n", R, G, B);
+ // fprintf(stderr,"shade text 2 %f %f %f\n", R, G, B);
   
  }
 

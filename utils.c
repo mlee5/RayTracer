@@ -242,6 +242,10 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
 				memcpy(p, p1, sizeof(point3D));
 				normalTransform(n1, n, plane);
 				normalize(n);
+				normalize(p1);
+				*a = (p1->px + 1.0)/2.0;
+				*b = (p1->py + 1.0)/2.0;
+				
 			}
 			else
 			{
@@ -420,7 +424,7 @@ void texMap(struct image *img, double a, double b, double *R, double *G, double 
  // b = 0.5;
  
 //  fprintf(stderr,"texmap0\n");
- unsigned char *rgbIm =  (unsigned char *)img->rgbdata;
+ double *rgbIm = (double *)img->rgbdata;
  int sx = img->sx;
  int sy = img->sy;
  
@@ -433,9 +437,9 @@ void texMap(struct image *img, double a, double b, double *R, double *G, double 
  // int j = floor(b*img->sy - 1);
  // fprintf(stderr,"texmap2\n");
   
- unsigned char R_ij =  *(rgbIm+3*(sx*j+i)); 
- unsigned char G_ij = *(rgbIm+(3*(sx*j+i)+1));
- unsigned char B_ij = *(rgbIm+(3*(sx*j+i)+2));
+ double R_ij =  *(rgbIm+3*(sx*j+i)); 
+ double G_ij = *(rgbIm+(3*(sx*j+i)+1));
+ double B_ij = *(rgbIm+(3*(sx*j+i)+2));
   //fprintf(stderr,"texmap2\n");
   
   //fprintf(stderr,"a and b is %f %f\n", a, b);
@@ -443,29 +447,12 @@ void texMap(struct image *img, double a, double b, double *R, double *G, double 
   double a_prime = a*(img->sx -1) - i;
   double b_prime = b*(img->sy -1) - j;
   
-   // double R_ij2 =  *(rgbIm + 3); 
-  // double G_ij2 = *(rgbIm+4);
- // double B_ij2 = *(rgbIm+5);
-  
-   // printf("default r g b %f %f %f\n", R_ij2, G_ij2, B_ij2);
   
   
- double rtemp =  (1-a_prime)*(1-b_prime)* ((double) *(rgbIm+3*(sx*j+i)) ) + (a_prime)*(1- b_prime)* ((double) *(rgbIm+3*(sx*j+i+1)) ) + (1- a_prime)*(b_prime)* ((double) *(rgbIm+3*(sx*(j+1)+i)) ) + a_prime*b_prime*((double) *(rgbIm+3*(sx*(j+1)+i +1)) );
- double gtemp =  (1-a_prime)*(1-b_prime)* ((double) *(rgbIm+ (3*(sx*j+i) +1)) ) + (a_prime)*(1- b_prime)* ((double) *(rgbIm+ (3*(sx*j+i+1)+1)) ) + (1- a_prime)*(b_prime)* ((double) *(rgbIm+ (3*(sx*(j+1)+i)+1)) ) + a_prime*b_prime*((double) *(rgbIm+ (3*(sx*(j+1)+i +1)+1)) );
- double btemp =  (1-a_prime)*(1-b_prime)* ((double) *(rgbIm+ (3*(sx*j+i) +2)) ) + (a_prime)*(1- b_prime)* ((double) *(rgbIm+ (3*(sx*j+i+1)+2)) ) + (1- a_prime)*(b_prime)* ((double) *(rgbIm+ (3*(sx*(j+1)+i)+2)) ) + a_prime*b_prime*((double) *(rgbIm+ (3*(sx*(j+1)+i +1)+2)) );
+ *R =  (1.0 - a_prime)*(1.0 - b_prime)* ((double) *(rgbIm+ 3 *(sx*j+i)) ) + (a_prime)*( 1.0 - b_prime)* ((double) *(rgbIm+ 3 *(sx*j+i+1)) ) + (1.0 - a_prime)*(b_prime)* ((double) *(rgbIm+ 3*(sx*(j+1)+i)) ) + a_prime*b_prime*((double) *(rgbIm+ 3*(sx*(j+1)+ i + 1)) );
+ *G =  (1.0 - a_prime)*(1.0 - b_prime)* ((double) *(rgbIm+ ( 3 *(sx*j+i) + 1 )) ) + (a_prime)*( 1.0 - b_prime)* ((double) *(rgbIm+ ( 3 *(sx*j+i+1)+ 1 )) ) + (1.0 - a_prime)*(b_prime)* ((double) *(rgbIm+ (3*(sx*(j+ 1)+i)+ 1)) ) + a_prime*b_prime*((double) *(rgbIm+ (3*(sx*(j+1)+ i +1)+1)) );
+ *B =  (1.0 - a_prime)*(1.0 - b_prime)* ((double) *(rgbIm+ ( 3 *(sx*j+i) + 2 )) ) + (a_prime)*( 1.0 - b_prime)* ((double) *(rgbIm+ ( 3 *(sx*j+i+1)+ 2 )) ) + (1.0 - a_prime)*(b_prime)* ((double) *(rgbIm+ (3*(sx*(j+ 1)+i)+ 2)) ) + a_prime*b_prime*((double) *(rgbIm+ (3*(sx*(j+1)+ i +1)+2)) );
 
-
-
- // fprintf(stderr,"texmap3\n");
- 
- // double rtemp =  (1-a)*(1-b)* ((double) img->rgbdata[i][j][0]) + (a)*(1-b)* ((double) img->rgbdata[i+1][j][0]) + (1-a)*(b)* ((double) img->rgbdata[i][j+1][0]) + a*b*((double)img->rgbdata[i+1][j+1][0]);
- // double gtemp = (1-a)*(1-b)* ((double) img->rgbdata[i][j][1]) + (a)*(1-b)* ((double) img->rgbdata[i+1][j][1]) + (1-a)*(b)* ((double) img->rgbdata[i][j+1][1]) + a*b*((double)img->rgbdata[i+1][j+1][1]);
- // double btemp = (1-a)*(1-b)* ((double) img->rgbdata[i][j][2]) + (a)*(1-b)* ((double) img->rgbdata[i+1][j][2]) + (1-a)*(b)* ((double) img->rgbdata[i][j+1][2]) + a*b*((double)img->rgbdata[i+1][j+1][2]);
-// printf("r g b %f %f %f\n", rtemp, gtemp, btemp);
- 
- *(R)= rtemp/255;	// Returns black - delete this and
- *(G)= gtemp/255;	// replace with your code to compute
- *(B)= btemp/255;	// texture colour at (a,b)
  return;
 }
 
@@ -912,11 +899,15 @@ struct image *readPPMimage(const char *filename)
 
   fread(tmp,sizx*sizy*3*sizeof(unsigned char),1,f);
   fclose(f);
-
+  
+   
   // Conversion to floating point
-  for (i=0; i<sizx*sizy*3; i++) 
-	  *(fRGB+i)=((double)*(tmp+i))/255.0;
-  free(tmp);
+  for (i=0; i<sizx*sizy*3; i++)
+  {	  
+    *(fRGB+i)=((double)*(tmp+i))/255.0;
+  }	  
+   
+   free(tmp);
   im->rgbdata=(void *)fRGB;
 
   return(im);
