@@ -416,8 +416,8 @@ void texMap(struct image *img, double a, double b, double *R, double *G, double 
  //////////////////////////////////////////////////
  
  
- a = 0.5;
- b = 0.5;
+ // a = 0.5;
+ // b = 0.5;
  
 //  fprintf(stderr,"texmap0\n");
  unsigned char *rgbIm =  (unsigned char *)img->rgbdata;
@@ -443,11 +443,11 @@ void texMap(struct image *img, double a, double b, double *R, double *G, double 
   double a_prime = a*(img->sx -1) - i;
   double b_prime = b*(img->sy -1) - j;
   
-   double R_ij2 =  *(rgbIm + 3); 
-  double G_ij2 = *(rgbIm+4);
- double B_ij2 = *(rgbIm+5);
+   // double R_ij2 =  *(rgbIm + 3); 
+  // double G_ij2 = *(rgbIm+4);
+ // double B_ij2 = *(rgbIm+5);
   
-   printf("default r g b %f %f %f\n", R_ij2, G_ij2, B_ij2);
+   // printf("default r g b %f %f %f\n", R_ij2, G_ij2, B_ij2);
   
   
  double rtemp =  (1-a_prime)*(1-b_prime)* ((double) *(rgbIm+3*(sx*j+i)) ) + (a_prime)*(1- b_prime)* ((double) *(rgbIm+3*(sx*j+i+1)) ) + (1- a_prime)*(b_prime)* ((double) *(rgbIm+3*(sx*(j+1)+i)) ) + a_prime*b_prime*((double) *(rgbIm+3*(sx*(j+1)+i +1)) );
