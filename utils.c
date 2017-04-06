@@ -11,7 +11,6 @@
 #include "float.h"
 #include "math.h"
 
-
 // A useful 4x4 identity matrix which can be used at any point to
 // initialize or reset object transformations
 double eye4x4[4][4]={{1.0, 0.0, 0.0, 0.0},
@@ -184,81 +183,6 @@ struct object3D *newSphere(double ra, double rd, double rs, double rg, double r,
  return(sphere);
 }
 
-struct object3D *newCylinder(double ra, double rd, double rs, double rg, double r, double g, double b, double alpha, double r_index, double shiny)
-{
- // Intialize a new cylinder with the specified parameters:
- // ra, rd, rs, rg - Albedos for the components of the Phong model
- // r, g, b, - Colour for this plane
- // alpha - Transparency, must be set to 1 unless you are doing refraction
- // r_index - Refraction index if you are doing refraction.
- // shiny -Exponent for the specular component of the Phong model
- //
- // This is assumed to represent a unit cylinder centered at the origin, with length 2 along z axis;
- //
-
- struct object3D *cylinder=(struct object3D *)calloc(1,sizeof(struct object3D));
-
- if (!cylinder) fprintf(stderr,"Unable to allocate new cylinder, out of memory!\n");
- else
- {
-  cylinder->alb.ra=ra;
-  cylinder->alb.rd=rd;
-  cylinder->alb.rs=rs;
-  cylinder->alb.rg=rg;
-  cylinder->col.R=r;
-  cylinder->col.G=g;
-  cylinder->col.B=b;
-  cylinder->alpha=alpha;
-  cylinder->r_index=r_index;
-  cylinder->shinyness=shiny;
-  cylinder->intersect=&cylinderIntersect;
-  cylinder->texImg=NULL;
-  memcpy(&cylinder->T[0][0],&eye4x4[0][0],16*sizeof(double));
-  memcpy(&cylinder->Tinv[0][0],&eye4x4[0][0],16*sizeof(double));
-  cylinder->textureMap=&texMap;
-  cylinder->frontAndBack=0;
-  cylinder->isLightSource=0;
- }
- return(cylinder);
-}
-struct object3D *newPacman(double ra, double rd, double rs, double rg, double r, double g, double b, double alpha, double r_index, double shiny)
-{
- // Intialize a new pacman with the specified parameters:
- // ra, rd, rs, rg - Albedos for the components of the Phong model
- // r, g, b, - Colour for this plane
- // alpha - Transparency, must be set to 1 unless you are doing refraction
- // r_index - Refraction index if you are doing refraction.
- // shiny -Exponent for the specular component of the Phong model
- //
- // This is assumed to represent a unit pacman centered at the origin, with length 1;
- //
-
- struct object3D *pacman=(struct object3D *)calloc(1,sizeof(struct object3D));
-
- if (!pacman) fprintf(stderr,"Unable to allocate new pacman, out of memory!\n");
- else
- {
-  pacman->alb.ra=ra;
-  pacman->alb.rd=rd;
-  pacman->alb.rs=rs;
-  pacman->alb.rg=rg;
-  pacman->col.R=r;
-  pacman->col.G=g;
-  pacman->col.B=b;
-  pacman->alpha=alpha;
-  pacman->r_index=r_index;
-  pacman->shinyness=shiny;
-  pacman->intersect=&pacmanIntersect;
-  pacman->texImg=NULL;
-  memcpy(&pacman->T[0][0],&eye4x4[0][0],16*sizeof(double));
-  memcpy(&pacman->Tinv[0][0],&eye4x4[0][0],16*sizeof(double));
-  pacman->textureMap=&texMap;
-  pacman->frontAndBack=0;
-  pacman->isLightSource=0;
- }
- return(pacman);
-}
-
 ///////////////////////////////////////////////////////////////////////////////////////
 // TO DO:
 //	Complete the functions that compute intersections for the canonical plane
@@ -406,131 +330,45 @@ void sphereIntersect(struct object3D *sphere, struct ray3D *ray, double *lambda,
 		normalize(n);
 		//printf("%.3f %.3f %.3f %.3f %.3f %.3f\n", n->px, n->py, n->pz, p1->px, p1->py, p1->pz);
 
+			double theta = acos(p1->pz / 1);
+			double phi = atan( p1->py / p1->px );
+			
+		//	printf(" phi theta %.3f %.3f\n", phi, theta);
+			
+			
+			*a = (phi + PI)/(2*PI);
+			//*a = fmod((phi + PI), (2*PI)) /(2*PI);
+			*b = (PI - theta)/ PI;
+			
+		//	printf(" %.3f %.3f %.3f\n",  p1->px, p1->py, p1->pz);
+			//fprintf(stderr,"a and b is %f %f\n", *a, *b);
+		
+		
+		
 		}
 		else
 		{
 			*lambda = DBL_MAX;
 		}
 	}
-
-	free(p1);
-	free(ray_transformed);
-}
-
-void cylinderIntersect(struct object3D *cylinder, struct ray3D *ray, double *lambda, struct point3D *p, struct point3D *n, double *a, double *b)
-{
- // Computes and returns the value of 'lambda' at the intersection
- // between the specified ray and the specified canonical sphere.
-
- 	struct point3D *l, *o, *p1;
-	double d, tempa, tempb, tempc;
-	struct ray3D *ray_transformed;
-	ray_transformed = newRay(&(ray->p0), &(ray->d));
-
-	rayTransform(ray, ray_transformed, cylinder);
-	//fprintf(stderr,"%.4f %.4f %.4f %.4f %.4f %.4f\n", ray_transformed->p0.px, ray_transformed->p0.py, ray_transformed->p0.pz, ray_transformed->d.px, ray_transformed->d.py, ray_transformed->d.pz);
-		
-
-	p1 = newPoint(0, 0, 0);
 
 	
-	o = &(ray_transformed->p0);
-	l = &(ray_transformed->d);
-	l->pw = 0;
-	l->pz = 0;
-	o->pz = 0;
-
-	tempa = dot(l, o);
-	tempb = length(l);
-	tempc = length(o);
-	d = tempa * tempa - tempb*tempb * (tempc*tempc - 1);
-	if (d < 0)
-	{
-		*lambda = DBL_MAX;
-	}
-	else if ( d == 0)
-	{
-
-		*lambda = tempa;
-		if (*lambda > 0)
-		{
-			rayPosition(ray_transformed, *lambda, p1);
-			matVecMult(cylinder->T, p1);
-
-			memcpy(p, p1, sizeof(point3D));
-			normalTransform(p1, n, cylinder);
-			normalize(n);
-		}
-		else
-		{
-			*lambda = DBL_MAX;
-		}
-	}
-	else
-	{		
-		*lambda = (-tempa-pow(d, 0.5))/(tempb*tempb);
-
-		//fprintf(stderr,"%.2f %.4f %.4f %.4f \n", *lambda, tempa, tempb, tempc);
-		
-		//fprintf(stderr,"%.2f %.4f %.4f %.4f %.4f %.4f %.4f\n",(*lambda), o->px, o->py, o->pz, l->px, l->py, l->pz);
-		
-		if (*lambda > 0) 
-		{
-		
-		rayPosition(ray_transformed, *lambda, p1);
-
-			if (p1->pz < 1 && p1->pz > -1)
-			{
-
-			memcpy(p, p1, sizeof(point3D));
-			matVecMult(cylinder->T, p);
-			normalTransform(p1, n, cylinder);
-			normalize(n);
-			//printf("%.3f %.3f %.3f %.3f %.3f %.3f\n", n->px, n->py, n->pz, p1->px, p1->py, p1->pz);
-
-			}
-			else
-			{
-				//check intersection with top and bottom plane
-
-			}
-		}
-		else
-		{
-			*lambda = DBL_MAX;
-		
-		}
-	}
-
-	free(p1);
-	free(ray_transformed);
-}
-
-void pacmanIntersect(struct object3D *pacman, struct ray3D *ray, double *lambda, struct point3D *p, struct point3D *n, double *a, double *b)
-{
- // Computes and returns the value of 'lambda' at the intersection
- // between the specified ray and the specified canonical sphere.
-
- 	struct point3D *l, *o, *p1;
-	double d, tempa, tempb, tempc;
-	struct ray3D *ray_transformed;
-	ray_transformed = newRay(&(ray->p0), &(ray->d));
-
-	rayTransform(ray, ray_transformed, pacman);
-	//fprintf(stderr,"%.4f %.4f %.4f %.4f %.4f %.4f\n", ray_transformed->p0.px, ray_transformed->p0.py, ray_transformed->p0.pz, ray_transformed->d.px, ray_transformed->d.py, ray_transformed->d.pz);
-		
-
-	p1 = newPoint(0, 0, 0);
-
-	o = &(ray_transformed->p0);
-	l = &(ray_transformed->d);
-	l->pw = 0;
-
-	//****/////
-	tempa = dot(l, o);
-	tempb = length(l);
-	tempc = length(o);
-
+	//only if theres an intersection, deal with textures
+	
+	
+	/*
+	double phi = acos(p1->pz / 1);
+	double theta = atan( p1->py / p1->px );
+	
+	printf(" phi theta %.3f %.3f\n", phi, theta);
+	
+	*a = fmod(phi, (2*PI)) /(2*PI);
+	*b = (PI - theta)/ PI;
+	
+	printf(" %.3f %.3f %.3f\n",  p1->px, p1->py, p1->pz);
+	fprintf(stderr,"a and b is %f %f\n", *a, *b);
+	*/
+	
 	free(p1);
 	free(ray_transformed);
 }
@@ -539,13 +377,17 @@ void loadTexture(struct object3D *o, const char *filename)
 {
  // Load a texture image from file and assign it to the
  // specified object
+ printf("loadtexture0\n");
  if (o!=NULL)
  {
+	 printf("loadtexture1\n");
   if (o->texImg!=NULL)	// We have previously loaded a texture
   {			// for this object, need to de-allocate it
+  printf("loadtexture2\n");
    if (o->texImg->rgbdata!=NULL) free(o->texImg->rgbdata);
    free(o->texImg);
   }
+  printf("loadtexture3s\n");
   o->texImg=readPPMimage(filename);	// Allocate new texture
  }
 }
@@ -572,21 +414,59 @@ void texMap(struct image *img, double a, double b, double *R, double *G, double 
  // coordinates. Your code should use bi-linear
  // interpolation to obtain the texture colour.
  //////////////////////////////////////////////////
-
+ 
+ 
+ a = 0.5;
+ b = 0.5;
+ 
+//  fprintf(stderr,"texmap0\n");
  unsigned char *rgbIm =  (unsigned char *)img->rgbdata;
  int sx = img->sx;
  int sy = img->sy;
  
+// fprintf(stderr,"texmap1\n");
+
  int i = floor(a*(img->sx -1));
  int j = floor(b*(img->sy -1));
+ 
+ // int i = floor(a*img->sx - 1);
+ // int j = floor(b*img->sy - 1);
+ // fprintf(stderr,"texmap2\n");
+  
+ unsigned char R_ij =  *(rgbIm+3*(sx*j+i)); 
+ unsigned char G_ij = *(rgbIm+(3*(sx*j+i)+1));
+ unsigned char B_ij = *(rgbIm+(3*(sx*j+i)+2));
+  //fprintf(stderr,"texmap2\n");
+  
+  //fprintf(stderr,"a and b is %f %f\n", a, b);
 
- double rtemp =  (1-a)*(1-b)* ((double) *(rgbIm+3*(sx*j+i)) ) + (a)*(1-b)* ((double) *(rgbIm+3*(sx*j+i+1)) ) + (1-a)*(b)* ((double) *(rgbIm+3*(sx*(j+1)+i)) ) + a*b*((double) *(rgbIm+3*(sx*(j+1)+i +1)) );
- double gtemp =  (1-a)*(1-b)* ((double) *(rgbIm+ (3*(sx*j+i) +1)) ) + (a)*(1-b)* ((double) *(rgbIm+ (3*(sx*j+i+1)+1)) ) + (1-a)*(b)* ((double) *(rgbIm+ (3*(sx*(j+1)+i)+1)) ) + a*b*((double) *(rgbIm+ (3*(sx*(j+1)+i +1)+1)) );
- double btemp =  (1-a)*(1-b)* ((double) *(rgbIm+ (3*(sx*j+i) +2)) ) + (a)*(1-b)* ((double) *(rgbIm+ (3*(sx*j+i+1)+2)) ) + (1-a)*(b)* ((double) *(rgbIm+ (3*(sx*(j+1)+i)+2)) ) + a*b*((double) *(rgbIm+ (3*(sx*(j+1)+i +1)+2)) );
+  double a_prime = a*(img->sx -1) - i;
+  double b_prime = b*(img->sy -1) - j;
+  
+   double R_ij2 =  *(rgbIm + 3); 
+  double G_ij2 = *(rgbIm+4);
+ double B_ij2 = *(rgbIm+5);
+  
+   printf("default r g b %f %f %f\n", R_ij2, G_ij2, B_ij2);
+  
+  
+ double rtemp =  (1-a_prime)*(1-b_prime)* ((double) *(rgbIm+3*(sx*j+i)) ) + (a_prime)*(1- b_prime)* ((double) *(rgbIm+3*(sx*j+i+1)) ) + (1- a_prime)*(b_prime)* ((double) *(rgbIm+3*(sx*(j+1)+i)) ) + a_prime*b_prime*((double) *(rgbIm+3*(sx*(j+1)+i +1)) );
+ double gtemp =  (1-a_prime)*(1-b_prime)* ((double) *(rgbIm+ (3*(sx*j+i) +1)) ) + (a_prime)*(1- b_prime)* ((double) *(rgbIm+ (3*(sx*j+i+1)+1)) ) + (1- a_prime)*(b_prime)* ((double) *(rgbIm+ (3*(sx*(j+1)+i)+1)) ) + a_prime*b_prime*((double) *(rgbIm+ (3*(sx*(j+1)+i +1)+1)) );
+ double btemp =  (1-a_prime)*(1-b_prime)* ((double) *(rgbIm+ (3*(sx*j+i) +2)) ) + (a_prime)*(1- b_prime)* ((double) *(rgbIm+ (3*(sx*j+i+1)+2)) ) + (1- a_prime)*(b_prime)* ((double) *(rgbIm+ (3*(sx*(j+1)+i)+2)) ) + a_prime*b_prime*((double) *(rgbIm+ (3*(sx*(j+1)+i +1)+2)) );
 
- *(R)= rtemp;	// Returns black - delete this and
- *(G)= gtemp;	// replace with your code to compute
- *(B)= btemp;	// texture colour at (a,b)
+
+
+ // fprintf(stderr,"texmap3\n");
+ 
+ // double rtemp =  (1-a)*(1-b)* ((double) img->rgbdata[i][j][0]) + (a)*(1-b)* ((double) img->rgbdata[i+1][j][0]) + (1-a)*(b)* ((double) img->rgbdata[i][j+1][0]) + a*b*((double)img->rgbdata[i+1][j+1][0]);
+ // double gtemp = (1-a)*(1-b)* ((double) img->rgbdata[i][j][1]) + (a)*(1-b)* ((double) img->rgbdata[i+1][j][1]) + (1-a)*(b)* ((double) img->rgbdata[i][j+1][1]) + a*b*((double)img->rgbdata[i+1][j+1][1]);
+ // double btemp = (1-a)*(1-b)* ((double) img->rgbdata[i][j][2]) + (a)*(1-b)* ((double) img->rgbdata[i+1][j][2]) + (1-a)*(b)* ((double) img->rgbdata[i][j+1][2]) + a*b*((double)img->rgbdata[i+1][j+1][2]);
+// printf("r g b %f %f %f\n", rtemp, gtemp, btemp);
+ 
+ *(R)= rtemp/255;	// Returns black - delete this and
+ *(G)= gtemp/255;	// replace with your code to compute
+ *(B)= btemp/255;	// texture colour at (a,b)
+ return;
 }
 
 void insertObject(struct object3D *o, struct object3D **list)
@@ -639,76 +519,6 @@ void addAreaLight(float sx, float sy, float nx, float ny, float nz,\
    make it into a proper solid box with backing and sides of non-light-emitting
    material
  */
-
-	struct point3D b1, b2, n, p;
-	struct point3D *u, *v;
- 	struct pointLS *l;
- 	struct object3D *o;
- 	double phi, theta;
-	n.px = nx;
-	n.py = ny;
-	n.pz = nz;
-	b1.px = 1;
-	b1.py = 0;
-	b1.pz = 0;
-	b2.px = 0;
-	b2.py = 1;
-	b2.pz = 0;
-	normalize(&n);
-	if (n.px == b1.px && n.py == b1.py && n.pz == b1.pz)
-	{
-		u = newPoint(0, 0, 1);
-		v = newPoint(0, 1, 0);
-
-	}
-	else if (n.px == b2.px && n.py == b2.py && n.pz == b2.pz)
-	{
-		u = newPoint(0, 0, 1);
-		v = newPoint(0, 1, 0);
-	}
-	else
-	{
-		v = cross(&b2, &n);
-		u = cross(&n, &b1);
-		normalize(u);
-		normalize(v);
-
-	}
-
-	for (int i = 0; i < lx; i++)
-	{
-		for (int j = 0; j < ly; j++)
-		{
-			p.px = u->px*(i-lx/2)*sx/lx  + v->px*(j-ly/2)*sy/ly + tx;
-			p.py = u->py*(i-lx/2)*sx/lx  + v->py*(j-ly/2)*sy/ly + ty;
-			p.pz = u->pz*(i-lx/2)*sx/lx  + v->pz*(j-ly/2)*sy/ly + tz;
- 			fprintf(stderr,"%.4f %.4f %.4f f\n",  p.px, p.py, p.pz);
-
- 			l=newPLS(&p,0.85/(lx*ly),0.85/(lx*ly),0.85/(lx*ly));
-
- 			insertPLS(l,l_list);
-		}
-	} 
-	o=newPlane(.05,.75,.05,.05,r,g,b,1,1,0);  
-    Scale(o,sx,sy,1);     
-    theta = acos(-nz);  
-    double phi1 = acos(ny/sin(theta));
-    double phi2 = asin(-nx/sin(theta));
-    if (phi2 >= 0) 
-    {
-    	phi = phi1;
-    }
-    else  
-    {
-    	phi = 2*PI-phi1;
-    }
-    RotateX(o,theta);
-    RotateZ(o,phi);
-    Translate(o,tx,ty,tz);
-    invert(&o->T[0][0],&o->Tinv[0][0]); 
- 	//insertObject(o,o_list);
-
-
 
   /////////////////////////////////////////////////////
   // TO DO: (Assignment 4!)
@@ -1043,7 +853,9 @@ struct image *readPPMimage(const char *filename)
  // the texture mapping function doesn't have to do the conversion every time
  // it is asked to return the colour at a specific location.
  //
-
+ 
+ fprintf(stderr,"readppm1\n");
+ 
  FILE *f;
  struct image *im;
  char line[1024];
@@ -1052,6 +864,8 @@ struct image *readPPMimage(const char *filename)
  unsigned char *tmp;
  double *fRGB;
 
+  fprintf(stderr,"readppm2\n");
+  
  im=(struct image *)calloc(1,sizeof(struct image));
  if (im!=NULL)
  {
@@ -1071,21 +885,21 @@ struct image *readPPMimage(const char *filename)
    fclose(f);
    return(NULL);
   }
-  fprintf(stderr,"%s\n",line);
+ // fprintf(stderr,"%s\n",line);
   // Skip over comments
   fgets(&line[0],511,f);
   while (line[0]=='#')
   {
-   fprintf(stderr,"%s",line);
+  // fprintf(stderr,"%s",line);
    fgets(&line[0],511,f);
   }
   sscanf(&line[0],"%d %d\n",&sizx,&sizy);           // Read file size
-  fprintf(stderr,"nx=%d, ny=%d\n\n",sizx,sizy);
+ // fprintf(stderr,"nx=%d, ny=%d\n\n",sizx,sizy);
   im->sx=sizx;
   im->sy=sizy;
 
   fgets(&line[0],9,f);  	                // Read the remaining header line
-  fprintf(stderr,"%s\n",line);
+ // fprintf(stderr,"%s\n",line);
   tmp=(unsigned char *)calloc(sizx*sizy*3,sizeof(unsigned char));
   fRGB=(double *)calloc(sizx*sizy*3,sizeof(double));
   if (tmp==NULL||fRGB==NULL)
@@ -1100,7 +914,8 @@ struct image *readPPMimage(const char *filename)
   fclose(f);
 
   // Conversion to floating point
-  for (i=0; i<sizx*sizy*3; i++) *(fRGB+i)=((double)*(tmp+i))/255.0;
+  for (i=0; i<sizx*sizy*3; i++) 
+	  *(fRGB+i)=((double)*(tmp+i))/255.0;
   free(tmp);
   im->rgbdata=(void *)fRGB;
 

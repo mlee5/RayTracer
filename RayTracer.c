@@ -84,25 +84,30 @@ void buildScene(void)
  RotateY(o,PI/2);
  Translate(o,-1.45,1.1,3.5);
  invert(&o->T[0][0],&o->Tinv[0][0]);
- const char filename[] = "bricks.ppm";
+ 
+ fprintf(stderr,"build 1\n");
+ const char filename[] = "red.ppm";
+ fprintf(stderr,"build2\n");
  loadTexture(o, filename);
  insertObject(o,&object_list);
 
+ 
+ /*
  o=newSphere(.05,.95,.95,.75,.75,.95,.55,1,1,6);
  Scale(o,.5,2.0,1.0);
  RotateZ(o,PI/1.5);
  Translate(o,1.75,1.25,5.0);
  invert(&o->T[0][0],&o->Tinv[0][0]);
+  loadTexture(o, filename);
  insertObject(o,&object_list);
-
+*/
  // Insert a single point light source.
- addAreaLight(5, 5, 0, 0, 1, 0, 15.5, -5.5, 20, 20, 0.75, 0.75, 0.75, &object_list, &light_list);
- // p.px=0;
- // p.py=15.5;
- // p.pz=-5.5;
- // p.pw=1;
- // l=newPLS(&p,.95,.95,.95);
- // insertPLS(l,&light_list);
+ p.px=0;
+ p.py=15.5;
+ p.pz=-5.5;
+ p.pw=1;
+ l=newPLS(&p,.95,.95,.95);
+ insertPLS(l,&light_list);
 
  // End of simple scene for Assignment 3
  // Keep in mind that you can define new types of objects such as cylinders and parametric surfaces,
@@ -127,6 +132,10 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
  // Returns:
  // - The colour for this ray (using the col pointer)
  //
+ 
+ // a = 0.5;
+ // b = 0.5;
+ 
  struct colourRGB tmp_col, refl_col;  // Accumulator for colour components
 
  double R,G,B;      // Colour for the object in R G and B
@@ -137,6 +146,9 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
  tmp_col.G=0;
  tmp_col.B=0;
 
+ 
+ // fprintf(stderr,"shade 1\n");
+ 
  if (obj->texImg==NULL)   // Not textured, use object colour
  {
   R=obj->col.R;
@@ -145,9 +157,12 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
  }
  else
  {
+	 //  fprintf(stderr,"shade text 1 %f %f %f\n", R, G, B);
   // Get object colour from the texture given the texture coordinates (a,b), and the texturing function
   // for the object. Note that we will use textures also for Photon Mapping.
   obj->textureMap(obj->texImg,a,b,&R,&G,&B);
+  //   fprintf(stderr,"shade text 2 %f %f %f\n", R, G, B);
+  
  }
 
  //////////////////////////////////////////////////////////////
@@ -157,9 +172,9 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
 // for light in scene create ray from intersection to light 
 
 
-R = obj->col.R;
-G = obj->col.G;
-B = obj->col.B;
+// R = obj->col.R;
+// G = obj->col.G;
+// B = obj->col.B;
  
 double shinyness = obj->shinyness;
 double ra = obj->alb.ra;
@@ -184,8 +199,6 @@ struct ray3D *reflectedRay = newRay(p, r);
 
 struct pointLS *currLight = light_list;
 struct point3D *direction = newPoint(0, 0, 0);
-double count = 0;
-double totalAmb;
   while (currLight != NULL)
 
   {    
@@ -203,45 +216,37 @@ double totalAmb;
     double intensitySpecular = 1;
 
     findFirstHit(shadowRay, lambda, obj, &objHit, pHit, nHit, &a, &b);
-    double ambient = ra * intensityAmbient;
-
-    totalAmb += ambient;
     if(*lambda == DBL_MAX)
     {
       
    //fprintf(stderr,"ra: %f  rs: %f  rd: %f \n", ra, rs, rd);
+     double ambient = ra * intensityAmbient;
      double specular = rs * pow(max(0, dot(&(shadowRay->d) , r)), shinyness) * intensitySpecular;
      double diffuse = rd * max(0, dot(n, &shadowRay->d)) * intensityDiffuse;
    
    //fprintf(stderr,"ambient diffuse spec %f %f %f\n", ambient, diffuse, specular);
    
-     tmp_col.R += (diffuse + specular) * R * currLight->col.R;
-     tmp_col.G += (diffuse + specular) * G * currLight->col.G;
-     tmp_col.B += (diffuse + specular) * B * currLight->col.B;
-
-
+     tmp_col.R +=   (ambient + diffuse + specular) * R;
+     tmp_col.G +=   (ambient + diffuse + specular) * G;
+     tmp_col.B +=  (ambient + diffuse + specular) * B;
    
-    fprintf(stderr,"R G B %f %f %f %f %f %f\n", tmp_col.R, tmp_col.G, tmp_col.B, currLight->col.R, currLight->col.G, currLight->col.B);
+   //fprintf(stderr,"R G B %f %f %f\n", tmp_col.R, tmp_col.G, tmp_col.B);
       
     
     }
       currLight = currLight->next;
-      count++;
  
     if (depth >= 0)
     {
+      // Color passed in here is not correct. just there to compile for now. 
       rayTrace(reflectedRay, --depth, &refl_col, obj);
-
-       tmp_col.R +=  0.5*refl_col.R;
-       tmp_col.G +=  0.5*refl_col.G;
-       tmp_col.B +=  0.5*refl_col.B;
+       tmp_col.R +=  refl_col.R;
+       tmp_col.G +=  refl_col.G;
+       tmp_col.B +=  refl_col.B;
 
     }
   }
-  tmp_col.R += totalAmb/count;
-  tmp_col.G += totalAmb/count;
-  tmp_col.B += totalAmb/count;
-    printf("%d\n", depth);
+   // printf("%d\n", depth);
   
    col->R = min(tmp_col.R, 1);// * rg;
    col->G = min(tmp_col.G, 1);// * rg;
@@ -364,6 +369,7 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
     
 
  if(*lambda < DBL_MAX){
+	//  fprintf(stderr,"inside lambda\n");
  //fprintf(stderr,"%.4f %.4f %.4f %.4f %.4f %.4f\n",  p->px, p->py, p->pz, n->px, n->py, n->pz);
   I.R = obj->col.R;
   I.G = obj->col.G;
@@ -532,7 +538,7 @@ int main(int argc, char *argv[])
 
  for (j=0;j<sx;j++)   // For each of the pixels in the image
  {
-  fprintf(stderr,"%d/%d, ",j,sx);
+ // fprintf(stderr,"%d/%d, ",j,sx);
   for (i=0;i<sx;i++)
   {
     pc.px = 0;
