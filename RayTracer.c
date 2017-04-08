@@ -63,88 +63,164 @@ void buildScene(void)
  // with some transformations.
 
  
+ 
   const char filename1[] = "bricks.ppm";
   const char filename2[] = "red.ppm";
-  const char filename3[] = "13_stripe.ppm";
   const char filename4[] = "pool_table_green.ppm";
-  const char filename5[] = "15_stripe.ppm";
-  const char filename6[] = "8_full.ppm";
-  const char filename7[] = "4_full.ppm";
-  const char filename8[] = "10_stripe.ppm";
+  
+  //pool ball texture filenames
+  
+  const char ball13[] = "13_stripe.ppm";
+  const char ball8[] = "8_full.ppm";
+  const char ball4[] = "4_full.ppm";
+  const char ball10[] = "10_stripe.ppm";
+  const char ball15[] = "15_stripe.ppm";
+	
+  const char ball3[] = "3_full.ppm";
+  const char ball9[] = "9_stripe.ppm";
+  const char ball6[] = "6_full.ppm";
+  const char ball5[] = "5_full.ppm";
+  const char ball1[] = "1_full.ppm";
  
- // Let's add a plane
- // Note the parameters: ra, rd, rs, rg, R, G, B, alpha, r_index, and shinyness)
- o=newPlane(.05,.75,.25,.05,.55,.8,.75,1,1,0);  // Note the plane is highly-reflective (rs=rg=.75) so we
-            // should see some reflections if all is done properly.
-            // Colour is close to cyan, and currently the plane is
-            // completely opaque (alpha=1). The refraction index is
-            // meaningless since alpha=1
- Scale(o,12,12,1);        // Do a few transforms...
+ //walls
+ 
+  o=newPlane(.05,.75,.25,.05,.55,.8,.75,1,1,0);  // Note the plane is highly-reflective (rs=rg=.75) so we
+ Scale(o,24,24,1);        // Do a few transforms...
  RotateZ(o,PI/1.20);
- RotateX(o,PI/2.25);
- Translate(o,0,-3,10);
- //loadTexture(o, filename4);
+ 
+ RotateX(o,PI/2);
+ Translate(o,0,-3 ,10);
+ //RotateX(o,PI/2.25);
  invert(&o->T[0][0],&o->Tinv[0][0]);    // Very important! compute
-           //and store the inverse
-           // transform for this object!
  loadTexture(o, filename4);
  insertObject(o,&object_list);      // Insert into object list
  
-
  
- // Let's add a couple spheres
+ //table
+ 
+ double baseheight = 0;
+ // Let's add a plane
+ // Note the parameters: ra, rd, rs, rg, R, G, B, alpha, r_index, and shinyness)
+ o=newPlane(.05,.75,.25,.05,.55,.8,.75,1,1,0);  // Note the plane is highly-reflective (rs=rg=.75) so we
+ Scale(o,12,12,1);        // Do a few transforms...
+ RotateZ(o,PI/1.20);
+ //RotateX(o,PI/2.25);
+ RotateX(o,PI/2);
+ Translate(o,0,-3 + baseheight ,10);
+ invert(&o->T[0][0],&o->Tinv[0][0]);    // Very important! compute
+ loadTexture(o, filename4);
+ insertObject(o,&object_list);      // Insert into object list
+ 
+ 
+ // 13 orange
  o=newSphere(.05,.95,.25,.35,1,.25,.25,1,1,10);
  Scale(o,0.7,0.7,0.7); 
  RotateX(o,PI/2);
  //L,R / U,D / F B
- Translate(o,-1.45,-3,3.5);
+ Translate(o,-1.45,-2.25 + baseheight ,3.5);
  invert(&o->T[0][0],&o->Tinv[0][0]);
- loadTexture(o, filename3);
+ loadTexture(o, ball13);
  insertObject(o,&object_list);
  
+ // white 
+ o=newSphere(.05,.95,.25,.35,.95,.95,.95,1,1,10);
+ Scale(o,0.7,0.7,0.7); 
+ RotateX(o,PI/2);
+ RotateY(o,PI);
+ Translate(o, 0.45, -2.25 + baseheight, 3.5);
+ invert(&o->T[0][0],&o->Tinv[0][0]);
+ insertObject(o,&object_list);
+ 
+ //8 black
+ o=newSphere(.05,.95,.25,.35,1,.25,.25,1,1,10);
+ Scale(o,0.7,0.7,0.7); 
+ RotateX(o,PI/2);
+ RotateY(o,PI);
+ Translate(o, 1.45, -2.25 + baseheight, 5);
+ invert(&o->T[0][0],&o->Tinv[0][0]);
+ loadTexture(o, ball8);
+ insertObject(o,&object_list);
+ 
+ //4 purple
+ o=newSphere(.05,.95,.25,.35,1,.25,.25,1,1,10);
+ Scale(o,0.7,0.7,0.7); 
+ RotateX(o,PI/2);
+ RotateY(o,PI);
+ Translate(o, 2.45, -2.25 + baseheight, 2);
+ invert(&o->T[0][0],&o->Tinv[0][0]);
+ loadTexture(o, ball4);
+ insertObject(o,&object_list);
+ 
+ //10 blue
+ o=newSphere(.05,.95,.25,.35,1,.25,.25,1,1,10);
+ Scale(o,0.7,0.7,0.7); 
+ RotateX(o,PI/2);
+ RotateY(o,PI);
+ Translate(o, 3.45, -2.25 + baseheight , 4.5);
+ invert(&o->T[0][0],&o->Tinv[0][0]);
+ loadTexture(o, ball10);
+ insertObject(o,&object_list);
+ 
+ //15 red
+ o=newSphere(.05,.95,.25,.35,1,.25,.25,1,1,10);
+ Scale(o,0.7,0.7,0.7); 
+ RotateX(o,PI/3);
+ Translate(o, 0, -2.25 + baseheight, 0);
+ invert(&o->T[0][0],&o->Tinv[0][0]);
+ loadTexture(o, ball15);
+
+ 
+ //second copy
+ // 3 orange-red
  o=newSphere(.05,.95,.25,.35,.75,.75,.75,1,1,10);
  Scale(o,0.7,0.7,0.7); 
  RotateX(o,PI/2);
  RotateY(o,PI);
- Translate(o,0.45,-3,3.5);
+ Translate(o, 0.45, -2.25 + baseheight, 13);
  invert(&o->T[0][0],&o->Tinv[0][0]);
+ loadTexture(o, ball3);
  insertObject(o,&object_list);
  
+ //9 yellow
  o=newSphere(.05,.95,.25,.35,1,.25,.25,1,1,10);
  Scale(o,0.7,0.7,0.7); 
  RotateX(o,PI/2);
  RotateY(o,PI);
- Translate(o,1.45,-3,5);
+ Translate(o, 1.45, -2.25 + baseheight, 11);
  invert(&o->T[0][0],&o->Tinv[0][0]);
- loadTexture(o, filename6);
+ loadTexture(o, ball9);
  insertObject(o,&object_list);
  
+ //6 green
  o=newSphere(.05,.95,.25,.35,1,.25,.25,1,1,10);
  Scale(o,0.7,0.7,0.7); 
  RotateX(o,PI/2);
  RotateY(o,PI);
- Translate(o,2.45,-3,2);
+ Translate(o, 2.45, -2.25 + baseheight, 8);
  invert(&o->T[0][0],&o->Tinv[0][0]);
- loadTexture(o, filename7);
+ loadTexture(o, ball6);
  insertObject(o,&object_list);
  
+ //5 orange
  o=newSphere(.05,.95,.25,.35,1,.25,.25,1,1,10);
  Scale(o,0.7,0.7,0.7); 
  RotateX(o,PI/2);
  RotateY(o,PI);
- Translate(o,3.45,-3,3.5);
+ Translate(o, 6.45, -2.25 + baseheight, 12.5);
  invert(&o->T[0][0],&o->Tinv[0][0]);
- loadTexture(o, filename8);
+ loadTexture(o, ball5);
  insertObject(o,&object_list);
  
+ //1 yellow
  o=newSphere(.05,.95,.25,.35,1,.25,.25,1,1,10);
  Scale(o,0.7,0.7,0.7); 
  RotateX(o,PI/3);
+ Translate(o, 0, -2.25 + baseheight, 6);
  invert(&o->T[0][0],&o->Tinv[0][0]);
- loadTexture(o, filename5);
-
+ loadTexture(o, ball1);
+  
  
- addAreaLight(3, 3, 0, 0, 1, 0, 15.5, -5.5, 5, 5, 0.75, 0.75, 0.75, &object_list, &light_list);
+ addAreaLight(3, 3, 0, -1, 0, 0, 4, 3, 20, 20, 1, 1, 0.9, &object_list, &light_list);
 
  // Insert a single point light source.
  // p.px=0;
@@ -323,6 +399,7 @@ struct point3D *nHit = newPoint(0, 0, 0);
 
 //point3D r = ray->d - 2 * dot(&ray->d , n)  * n;
 struct point3D *r = newPoint(dot(&ray->d , n) * n->px, dot(&ray->d , n) * n->py, dot(&ray->d , n) * n->pz);
+struct point3D *u, *v ;
 r->px = -r->px;
 r->py = -r->py;
 r->pz = -r->pz;
@@ -337,6 +414,8 @@ while (currLight != NULL){
       count = count + 1;
       currLight = currLight->next;
 }
+u = cross(r, n);
+v = cross(r, u);
 currLight = light_list;
   while (currLight != NULL)
 
@@ -376,17 +455,18 @@ currLight = light_list;
     }
       currLight = currLight->next;
  
-    if (depth > 0)
+
+	free(shadowRay);
+  }    
+  if (depth > 0)
     {
       rayTrace(reflectedRay, depth-1, &refl_col, obj);
 
-       tmp_col.R +=  rs * refl_col.R/count;
-       tmp_col.G +=  rs * refl_col.G/count;
-       tmp_col.B +=  rs * refl_col.B/count;
+       tmp_col.R +=  rs*refl_col.R;
+       tmp_col.G +=  rs*refl_col.G;
+       tmp_col.B +=  rs*refl_col.B;
 
     }
-	free(shadowRay);
-  }
   tmp_col.R += totalAmb/count;
   tmp_col.G += totalAmb/count;
   tmp_col.B += totalAmb/count;
@@ -396,6 +476,8 @@ currLight = light_list;
    col->G = min(tmp_col.G, 1);// * rg;
    col->B = min(tmp_col.B, 1);//* rg;
  // Be sure to update 'col' with the final colour computed here!
+ free(u);
+ free(v);
  free(reflectedRay);
  free(lambda);
  free(nHit);
@@ -427,8 +509,6 @@ void findFirstHit(struct ray3D *ray, double *lambda, struct object3D *Os, struct
  struct point3D *closest_p, *closest_n;
  struct point3D *curr_p, *curr_n;
  struct point3D distance_test;
- double a_temp, b_temp;
- double closest_a, closest_b;
 
  curr_p = newPoint(0, 0, 0);
  curr_n = newPoint(0, 0, 0); 
@@ -440,8 +520,11 @@ void findFirstHit(struct ray3D *ray, double *lambda, struct object3D *Os, struct
  {
    if (curr_object != Os)
    {
-    curr_object->intersect(curr_object, ray, &curr_lambda, curr_p, curr_n, &a_temp, &b_temp);
+    curr_object->intersect(curr_object, ray, &curr_lambda, curr_p, curr_n, a, b);
 
+
+    //fprintf(stderr, "%f\n", lambda);
+    //fprintf(stderr,"%f %f %f\n",curr_object->col.R,curr_object->col.G,curr_object->col.B);
     if (curr_lambda < DBL_MAX )
     { 
       distance_test = ray->p0;
@@ -452,26 +535,28 @@ void findFirstHit(struct ray3D *ray, double *lambda, struct object3D *Os, struct
 
       *obj = curr_object;
       closest = curr_distance;
-	  closest_a = a_temp;
-	  closest_b = b_temp;
       memcpy(closest_n,curr_n,sizeof(point3D));
       memcpy(closest_p,curr_p,sizeof(point3D));
       }
     }
+    //first_hit = &curr_object;
+    
   }
   curr_object = curr_object->next;
  }
  
  *lambda = closest;
  memcpy(n,closest_n,sizeof(point3D));
- memcpy(p,closest_p,sizeof(point3D));  
- memcpy(a,&closest_a,sizeof(double));
- memcpy(b,&closest_b,sizeof(double));    
+ memcpy(p,closest_p,sizeof(point3D));   
 
  free(closest_n);
  free(closest_p);
  free(curr_n);
  free(curr_p);
+ /////////////////////////////////////////////////////////////
+ // TO DO: Implement this function. See the notes for
+ // reference of what to do in here
+ /////////////////////////////////////////////////////////////
 
 }
 
@@ -681,7 +766,7 @@ cam=setupView(&e, &g, &up, -3, -1, 1, 2);
    //since the origin at 0, can easily find direction without subtracting origin from image point.
 
    double superSampleScale = pow(antialiasing + 1, atoi(argv[3])); // assume power of two
-  // fprintf(stderr,"%d", superSampleScale);
+   fprintf(stderr,"%d", superSampleScale);
    omp_set_dynamic(0);     // Explicitly disable dynamic teams
 	omp_set_num_threads(4);
     #pragma omp parallel for shared(rgbIm) private(pc) private(ray) private(d) private(i) private(col) private(areaCol)  firstprivate(MAX_DEPTH) num_threads(4) schedule(static)
