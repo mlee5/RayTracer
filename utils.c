@@ -237,15 +237,16 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
 			rayPosition(ray_transformed, *lambda, p1);
 			if (p1->px >= -1 && p1->px <= 1 && p1->py >= -1 && p1->py <= 1 )
 			{
+
+				*a = (p1->px + 1.0)/2.0;
+				*b = (p1->py + 1.0)/2.0;
+				
 				matVecMult(plane->T, p1);
 
 				memcpy(p, p1, sizeof(point3D));
 				normalTransform(n1, n, plane);
 				normalize(n);
 				normalize(p1);
-				*a = (p1->px + 1.0)/2.0;
-				*b = (p1->py + 1.0)/2.0;
-				
 			}
 			else
 			{
@@ -506,6 +507,72 @@ void addAreaLight(float sx, float sy, float nx, float ny, float nz,\
    make it into a proper solid box with backing and sides of non-light-emitting
    material
  */
+	struct point3D b1, b2, n, p;
+	struct point3D *u, *v;
+ 	struct pointLS *l;
+ 	struct object3D *o;
+ 	double phi, theta;
+	n.px = nx;
+	n.py = ny;
+	n.pz = nz;
+	b1.px = 1;
+	b1.py = 0;
+	b1.pz = 0;
+	b2.px = 0;
+	b2.py = 1;
+	b2.pz = 0;
+	normalize(&n);
+	if (n.px == b1.px && n.py == b1.py && n.pz == b1.pz)
+	{
+		u = newPoint(0, 0, 1);
+		v = newPoint(0, 1, 0);
+
+	}
+	else if (n.px == b2.px && n.py == b2.py && n.pz == b2.pz)
+	{
+		u = newPoint(0, 0, 1);
+		v = newPoint(0, 1, 0);
+	}
+	else
+	{
+		v = cross(&b2, &n);
+		u = cross(&n, &b1);
+		normalize(u);
+		normalize(v);
+
+	}
+
+	for (int i = 0; i < lx; i++)
+	{
+		for (int j = 0; j < ly; j++)
+		{
+			p.px = u->px*(i-lx/2)*sx/lx  + v->px*(j-ly/2)*sy/ly + tx;
+			p.py = u->py*(i-lx/2)*sx/lx  + v->py*(j-ly/2)*sy/ly + ty;
+			p.pz = u->pz*(i-lx/2)*sx/lx  + v->pz*(j-ly/2)*sy/ly + tz;
+
+ 			l=newPLS(&p,0.85/(lx*ly),0.85/(lx*ly),0.85/(lx*ly));
+
+ 			insertPLS(l,l_list);
+		}
+	} 
+	o=newPlane(.05,.75,.05,.05,r,g,b,1,1,0);  
+    Scale(o,sx,sy,1);     
+    theta = acos(-nz);  
+    double phi1 = acos(ny/sin(theta));
+    double phi2 = asin(-nx/sin(theta));
+    if (phi2 >= 0) 
+    {
+    	phi = phi1;
+    }
+    else  
+    {
+    	phi = 2*PI-phi1;
+    }
+    RotateX(o,theta);
+    RotateZ(o,phi);
+    Translate(o,tx,ty,tz);
+    invert(&o->T[0][0],&o->Tinv[0][0]); 
+
 
   /////////////////////////////////////////////////////
   // TO DO: (Assignment 4!)
