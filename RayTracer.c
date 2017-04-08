@@ -82,7 +82,7 @@ void buildScene(void)
  Scale(o,12,12,1);        // Do a few transforms...
  RotateZ(o,PI/1.20);
  RotateX(o,PI/2.25);
- Translate(o,0,0,10);
+ Translate(o,0,-3,10);
  //loadTexture(o, filename4);
  invert(&o->T[0][0],&o->Tinv[0][0]);    // Very important! compute
            //and store the inverse
@@ -97,16 +97,16 @@ void buildScene(void)
  Scale(o,0.7,0.7,0.7); 
  RotateX(o,PI/2);
  //L,R / U,D / F B
- Translate(o,-1.45,0,3.5);
+ Translate(o,-1.45,-3,3.5);
  invert(&o->T[0][0],&o->Tinv[0][0]);
  loadTexture(o, filename3);
  insertObject(o,&object_list);
  
- o=newSphere(.05,.95,.25,.35,0,0,0,1,1,10);
+ o=newSphere(.05,.95,.25,.35,.75,.75,.75,1,1,10);
  Scale(o,0.7,0.7,0.7); 
  RotateX(o,PI/2);
  RotateY(o,PI);
- Translate(o,0.45,0,3.5);
+ Translate(o,0.45,-3,3.5);
  invert(&o->T[0][0],&o->Tinv[0][0]);
  insertObject(o,&object_list);
  
@@ -114,7 +114,7 @@ void buildScene(void)
  Scale(o,0.7,0.7,0.7); 
  RotateX(o,PI/2);
  RotateY(o,PI);
- Translate(o,1.45,0,3.5);
+ Translate(o,1.45,-3,5);
  invert(&o->T[0][0],&o->Tinv[0][0]);
  loadTexture(o, filename6);
  insertObject(o,&object_list);
@@ -123,7 +123,7 @@ void buildScene(void)
  Scale(o,0.7,0.7,0.7); 
  RotateX(o,PI/2);
  RotateY(o,PI);
- Translate(o,2.45,0,2);
+ Translate(o,2.45,-3,2);
  invert(&o->T[0][0],&o->Tinv[0][0]);
  loadTexture(o, filename7);
  insertObject(o,&object_list);
@@ -132,7 +132,7 @@ void buildScene(void)
  Scale(o,0.7,0.7,0.7); 
  RotateX(o,PI/2);
  RotateY(o,PI);
- Translate(o,3.45,0,3.5);
+ Translate(o,3.45,-3,3.5);
  invert(&o->T[0][0],&o->Tinv[0][0]);
  loadTexture(o, filename8);
  insertObject(o,&object_list);
@@ -142,10 +142,10 @@ void buildScene(void)
  RotateX(o,PI/3);
  invert(&o->T[0][0],&o->Tinv[0][0]);
  loadTexture(o, filename5);
- //insertObject(o,&object_list);
 
-
+ 
  addAreaLight(3, 3, 0, 0, 1, 0, 15.5, -5.5, 5, 5, 0.75, 0.75, 0.75, &object_list, &light_list);
+
  // Insert a single point light source.
  // p.px=0;
  // p.py=15.5;
