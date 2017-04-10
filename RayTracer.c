@@ -25,6 +25,7 @@ struct pointLS *light_list;
 struct colourRGB background;  
 int MAX_DEPTH;
 
+
 void buildScene(void)
 {
  // Sets up all objects in the more complex scene for Assignment 4 ( a pool table scene)
